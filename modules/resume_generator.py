@@ -111,15 +111,32 @@ class ResumeGenerator:
         # In a more advanced version, this could use NLP to enhance descriptions
         return description
     
-    def generate_tailored_skills(self, profile_skills: str, job_analysis: Dict) -> str:
+    def get_all_skills_combined(self, profile: Dict) -> str:
+        """Combine all skill categories into a single string"""
+        all_skills = []
+        
+        # Collect skills from all categories
+        categories = ['programming_skills', 'technologies', 'language_skills', 'certifications']
+        for category in categories:
+            skills_text = profile.get(category, '')
+            if skills_text:
+                skills_list = [skill.strip() for skill in skills_text.split(',') if skill.strip()]
+                all_skills.extend(skills_list)
+        
+        return ', '.join(all_skills)
+    
+    def generate_tailored_skills(self, profile: Dict, job_analysis: Dict) -> str:
         """Generate a tailored skills section based on job requirements"""
-        if not profile_skills:
+        # Get all skills combined from categories
+        all_skills_text = self.get_all_skills_combined(profile)
+        
+        if not all_skills_text:
             return ""
         
-        profile_skill_list = [skill.strip() for skill in profile_skills.split(',')]
+        profile_skill_list = [skill.strip() for skill in all_skills_text.split(',')]
         
         if not job_analysis:
-            return profile_skills
+            return all_skills_text
         
         # Get job skills
         job_technical = job_analysis.get('skills', {}).get('technical', [])
@@ -143,6 +160,23 @@ class ResumeGenerator:
         # Put matched skills first
         tailored_skills = matched_skills + unmatched_skills
         return ', '.join(tailored_skills)
+    
+    def generate_categorized_skills_text(self, profile: Dict) -> str:
+        """Generate skills text organized by categories"""
+        skills_sections = []
+        
+        categories = {
+            'Programming': profile.get('programming_skills', ''),
+            'Technologies': profile.get('technologies', ''),
+            'Languages': profile.get('language_skills', ''),
+            'Certifications': profile.get('certifications', '')
+        }
+        
+        for category, skills_text in categories.items():
+            if skills_text:
+                skills_sections.append(f"{category}: {skills_text}")
+        
+        return ' | '.join(skills_sections)
     
     def generate_professional_summary(self, profile: Dict, job_analysis: Dict) -> str:
         """Generate a tailored professional summary"""
@@ -208,7 +242,11 @@ class ResumeGenerator:
             content.append(Spacer(1, 0.1*inch))
         
         # Skills
-        skills = self.generate_tailored_skills(profile.get('skills', ''), job_analysis)
+        if job_analysis:
+            skills = self.generate_tailored_skills(profile, job_analysis)
+        else:
+            skills = self.generate_categorized_skills_text(profile)
+        
         if skills:
             content.append(Paragraph("SKILLS", self.section_style))
             content.append(Paragraph(skills, self.body_style))
@@ -238,6 +276,29 @@ class ResumeGenerator:
                 )
                 if description:
                     content.append(Paragraph(description, self.body_style))
+                
+                content.append(Spacer(1, 0.1*inch))
+        
+        # Education
+        education = profile.get('education', [])
+        if education:
+            content.append(Paragraph("EDUCATION", self.section_style))
+            
+            for edu in education:
+                # Degree and institution
+                edu_line = f"<b>{edu.get('degree', 'Degree')}</b>"
+                if edu.get('field'):
+                    edu_line += f" in {edu.get('field')}"
+                if edu.get('institution'):
+                    edu_line += f" - {edu.get('institution')}"
+                if edu.get('year'):
+                    edu_line += f" ({edu.get('year')})"
+                
+                content.append(Paragraph(edu_line, self.body_style))
+                
+                # Additional details
+                if edu.get('details'):
+                    content.append(Paragraph(edu.get('details'), self.body_style))
                 
                 content.append(Spacer(1, 0.1*inch))
         
@@ -277,7 +338,11 @@ class ResumeGenerator:
             doc.add_paragraph(summary)
         
         # Skills
-        skills = self.generate_tailored_skills(profile.get('skills', ''), job_analysis)
+        if job_analysis:
+            skills = self.generate_tailored_skills(profile, job_analysis)
+        else:
+            skills = self.generate_categorized_skills_text(profile)
+        
         if skills:
             doc.add_heading('SKILLS', level=2)
             doc.add_paragraph(skills)
@@ -308,6 +373,29 @@ class ResumeGenerator:
                 )
                 if description:
                     doc.add_paragraph(description)
+        
+        # Education
+        education = profile.get('education', [])
+        if education:
+            doc.add_heading('EDUCATION', level=2)
+            
+            for edu in education:
+                # Degree and institution
+                edu_text = edu.get('degree', 'Degree')
+                if edu.get('field'):
+                    edu_text += f" in {edu.get('field')}"
+                if edu.get('institution'):
+                    edu_text += f" - {edu.get('institution')}"
+                if edu.get('year'):
+                    edu_text += f" ({edu.get('year')})"
+                
+                edu_para = doc.add_paragraph()
+                edu_run = edu_para.add_run(edu_text)
+                edu_run.bold = True
+                
+                # Additional details
+                if edu.get('details'):
+                    doc.add_paragraph(edu.get('details'))
         
         # Save to buffer
         buffer = io.BytesIO()

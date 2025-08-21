@@ -117,13 +117,21 @@ elif selected == "Profile Manager":
             completeness = (completed_fields / len(required_fields)) * 100
             
             # Display metrics
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Profile Completeness", f"{completeness:.0f}%")
             with col2:
                 st.metric("Experience Entries", len(profile.get('experiences', [])))
             with col3:
-                skills_count = len([s.strip() for s in profile.get('skills', '').split(',') if s.strip()])
+                st.metric("Education Entries", len(profile.get('education', [])))
+            with col4:
+                # Count all skills across categories
+                all_skills = []
+                for category in ['programming_skills', 'technologies', 'language_skills', 'certifications']:
+                    skills_text = profile.get(category, '')
+                    if skills_text:
+                        all_skills.extend([s.strip() for s in skills_text.split(',') if s.strip()])
+                skills_count = len(all_skills)
                 st.metric("Skills Listed", skills_count)
             
             st.divider()
@@ -148,16 +156,39 @@ elif selected == "Profile Manager":
                 st.write(profile['summary'])
             
             # Skills
-            if profile.get('skills'):
+            skills_categories = {
+                'Programming Skills': profile.get('programming_skills', ''),
+                'Technologies & Tools': profile.get('technologies', ''),
+                'Language Skills': profile.get('language_skills', ''),
+                'Certifications': profile.get('certifications', '')
+            }
+            
+            # Check if any skills exist
+            has_skills = any(skills for skills in skills_categories.values())
+            
+            if has_skills:
                 st.subheader("🛠️ Skills")
-                skills_list = [skill.strip() for skill in profile['skills'].split(',') if skill.strip()]
                 
-                # Display skills as tags
-                skills_html = ""
-                for skill in skills_list:
-                    skills_html += f'<span style="background-color: #e1f5fe; color: #01579b; padding: 2px 8px; margin: 2px; border-radius: 12px; font-size: 12px; display: inline-block;">{skill}</span>'
-                
-                st.markdown(skills_html, unsafe_allow_html=True)
+                for category, skills_text in skills_categories.items():
+                    if skills_text:
+                        st.markdown(f"**{category}:**")
+                        skills_list = [skill.strip() for skill in skills_text.split(',') if skill.strip()]
+                        
+                        # Display skills as tags with different colors for each category
+                        color_map = {
+                            'Programming Skills': '#e1f5fe',
+                            'Technologies & Tools': '#f3e5f5', 
+                            'Language Skills': '#e8f5e8',
+                            'Certifications': '#fff3e0'
+                        }
+                        
+                        skills_html = ""
+                        for skill in skills_list:
+                            color = color_map.get(category, '#e1f5fe')
+                            skills_html += f'<span style="background-color: {color}; color: #333; padding: 2px 8px; margin: 2px; border-radius: 12px; font-size: 12px; display: inline-block;">{skill}</span>'
+                        
+                        st.markdown(skills_html, unsafe_allow_html=True)
+                        st.write("")  # Add space between categories
             
             # Experience
             experiences = profile.get('experiences', [])
@@ -178,6 +209,31 @@ elif selected == "Profile Manager":
                         if exp.get('description'):
                             st.write("**Description:**")
                             st.write(exp['description'])
+            
+            # Education
+            education = profile.get('education', [])
+            if education:
+                st.subheader("🎓 Education")
+                
+                for i, edu in enumerate(education):
+                    degree_field = f"{edu.get('degree', 'Degree')}"
+                    if edu.get('field'):
+                        degree_field += f" in {edu.get('field')}"
+                    
+                    with st.expander(f"🏫 {degree_field} - {edu.get('institution', 'Institution')}", expanded=i==0):
+                        col1, col2 = st.columns([2, 1])
+                        
+                        with col1:
+                            st.write(f"**Institution:** {edu.get('institution', 'Not specified')}")
+                            st.write(f"**Degree:** {edu.get('degree', 'Not specified')}")
+                            st.write(f"**Field of Study:** {edu.get('field', 'Not specified')}")
+                        
+                        with col2:
+                            st.write(f"**Year:** {edu.get('year', 'Not specified')}")
+                        
+                        if edu.get('details'):
+                            st.write("**Additional Details:**")
+                            st.write(edu['details'])
             
             # Last updated
             if profile.get('last_updated'):
@@ -206,36 +262,142 @@ elif selected == "Profile Manager":
         
         # Skills
         st.subheader("Skills")
-        skills = st.text_area("Skills (comma-separated)", value=profile.get('skills', ''), height=100)
+        st.markdown("Organize your skills into categories for better presentation on your resume.")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            programming_skills = st.text_area(
+                "Programming Skills", 
+                value=profile.get('programming_skills', ''), 
+                height=80,
+                help="e.g., Python, Java, JavaScript, C++, SQL"
+            )
+            
+            language_skills = st.text_area(
+                "Language Skills", 
+                value=profile.get('language_skills', ''), 
+                height=80,
+                help="e.g., English (Native), Spanish (Fluent), Mandarin (Conversational)"
+            )
+        
+        with col2:
+            technologies = st.text_area(
+                "Technologies & Tools", 
+                value=profile.get('technologies', ''), 
+                height=80,
+                help="e.g., React, AWS, Docker, Git, Tableau, Excel"
+            )
+            
+            certifications = st.text_area(
+                "Certifications", 
+                value=profile.get('certifications', ''), 
+                height=80,
+                help="e.g., AWS Certified Solutions Architect, PMP, Google Analytics"
+            )
         
         # Experience
         st.subheader("Work Experience")
-        experiences = profile.get('experiences', [])
+        
+        # Initialize experiences in session state if not exists
+        if 'temp_experiences' not in st.session_state:
+            st.session_state.temp_experiences = profile.get('experiences', []).copy()
         
         # Add new experience
         if st.button("➕ Add Experience"):
-            experiences.append({
+            st.session_state.temp_experiences.append({
                 'title': '',
                 'company': '',
                 'duration': '',
                 'description': ''
             })
+            st.rerun()
         
         # Display experiences
+        experiences = st.session_state.temp_experiences
+        updated_experiences = []
+        
         for i, exp in enumerate(experiences):
-            with st.expander(f"Experience {i+1}"):
+            with st.expander(f"Experience {i+1}", expanded=True if exp.get('title', '') == '' else False):
                 col1, col2 = st.columns(2)
                 with col1:
-                    exp['title'] = st.text_input(f"Job Title {i+1}", value=exp.get('title', ''), key=f"title_{i}")
-                    exp['company'] = st.text_input(f"Company {i+1}", value=exp.get('company', ''), key=f"company_{i}")
+                    title = st.text_input(f"Job Title", value=exp.get('title', ''), key=f"title_{i}")
+                    company = st.text_input(f"Company", value=exp.get('company', ''), key=f"company_{i}")
                 with col2:
-                    exp['duration'] = st.text_input(f"Duration {i+1}", value=exp.get('duration', ''), key=f"duration_{i}")
+                    duration = st.text_input(f"Duration (e.g., Jan 2020 - Dec 2022)", value=exp.get('duration', ''), key=f"duration_{i}")
                 
-                exp['description'] = st.text_area(f"Description {i+1}", value=exp.get('description', ''), key=f"desc_{i}")
+                description = st.text_area(f"Job Description", value=exp.get('description', ''), key=f"desc_{i}", height=100,
+                                         help="Describe your responsibilities, achievements, and key accomplishments")
                 
+                # Store updated values
+                updated_exp = {
+                    'title': title,
+                    'company': company,
+                    'duration': duration,
+                    'description': description
+                }
+                updated_experiences.append(updated_exp)
+                
+                # Remove experience button
                 if st.button(f"🗑️ Remove Experience {i+1}", key=f"remove_{i}"):
-                    experiences.pop(i)
+                    st.session_state.temp_experiences.pop(i)
                     st.rerun()
+        
+        # Update session state with current values
+        st.session_state.temp_experiences = updated_experiences
+        
+        # Education
+        st.subheader("Education")
+        
+        # Initialize education in session state if not exists
+        if 'temp_education' not in st.session_state:
+            st.session_state.temp_education = profile.get('education', []).copy()
+        
+        # Add new education
+        if st.button("➕ Add Education"):
+            st.session_state.temp_education.append({
+                'institution': '',
+                'degree': '',
+                'field': '',
+                'year': '',
+                'details': ''
+            })
+            st.rerun()
+        
+        # Display education
+        education = st.session_state.temp_education
+        updated_education = []
+        
+        for i, edu in enumerate(education):
+            with st.expander(f"Education {i+1}", expanded=True if edu.get('institution', '') == '' else False):
+                col1, col2 = st.columns(2)
+                with col1:
+                    institution = st.text_input(f"Institution/School", value=edu.get('institution', ''), key=f"edu_inst_{i}")
+                    degree = st.text_input(f"Degree/Certification", value=edu.get('degree', ''), key=f"edu_degree_{i}")
+                with col2:
+                    field = st.text_input(f"Field of Study", value=edu.get('field', ''), key=f"edu_field_{i}")
+                    year = st.text_input(f"Year/Duration (e.g., 2018-2022)", value=edu.get('year', ''), key=f"edu_year_{i}")
+                
+                details = st.text_area(f"Additional Details", value=edu.get('details', ''), key=f"edu_details_{i}", height=80,
+                                     help="GPA, honors, relevant coursework, achievements, etc.")
+                
+                # Store updated values
+                updated_edu = {
+                    'institution': institution,
+                    'degree': degree,
+                    'field': field,
+                    'year': year,
+                    'details': details
+                }
+                updated_education.append(updated_edu)
+                
+                # Remove education button
+                if st.button(f"🗑️ Remove Education {i+1}", key=f"remove_edu_{i}"):
+                    st.session_state.temp_education.pop(i)
+                    st.rerun()
+        
+        # Update session state with current values
+        st.session_state.temp_education = updated_education
         
         # Save profile
         if st.button("💾 Save Profile", type="primary"):
@@ -247,12 +409,29 @@ elif selected == "Profile Manager":
                 'linkedin': linkedin,
                 'website': website,
                 'summary': summary,
-                'skills': skills,
-                'experiences': experiences,
+                'programming_skills': programming_skills,
+                'technologies': technologies,
+                'language_skills': language_skills,
+                'certifications': certifications,
+                'experiences': st.session_state.temp_experiences,
+                'education': st.session_state.temp_education,
                 'last_updated': datetime.now().isoformat()
             }
             save_profile(profile_data)
             st.success("Profile saved successfully!")
+            st.info("💡 Switch to 'View Profile' tab to see your updated information.")
+        
+        # Reset changes buttons
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Reset Experience Changes"):
+                st.session_state.temp_experiences = profile.get('experiences', []).copy()
+                st.rerun()
+        
+        with col2:
+            if st.button("🔄 Reset Education Changes"):
+                st.session_state.temp_education = profile.get('education', []).copy()
+                st.rerun()
 
 # Upload Resume Page
 elif selected == "Upload Resume":
@@ -350,10 +529,14 @@ elif selected == "Job Matcher":
                         analyzer = get_job_analyzer()
                         analysis = analyzer.analyze_job_description(job_description)
                         
-                        # Calculate match score with profile
-                        profile_skills = profile.get('skills', '').split(',')
-                        profile_skills = [skill.strip() for skill in profile_skills if skill.strip()]
-                        match_score = analyzer.calculate_match_score(profile_skills, analysis)
+                        # Calculate match score with profile - combine all skill categories
+                        all_skills = []
+                        for category in ['programming_skills', 'technologies', 'language_skills', 'certifications']:
+                            skills_text = profile.get(category, '')
+                            if skills_text:
+                                all_skills.extend([s.strip() for s in skills_text.split(',') if s.strip()])
+                        
+                        match_score = analyzer.calculate_match_score(all_skills, analysis)
                         analysis['matching_score'] = match_score
                         
                         # Store analysis in session state
@@ -477,8 +660,8 @@ elif selected == "Job Matcher":
 
 # Export Resume Page
 elif selected == "Export Resume":
-    st.title("📥 Export Resume")
-    st.markdown("Download your tailored resume in your preferred format.")
+    st.title("📥 Resume Builder & Export")
+    st.markdown("Create, tailor, and download your professional resume.")
     
     # Load profile
     profile = load_profile()
@@ -488,109 +671,181 @@ elif selected == "Export Resume":
         if st.button("Go to Profile Manager"):
             st.switch_page("Profile Manager")
     else:
-        # Check if a tailored resume was generated
-        has_tailored = hasattr(st.session_state, 'generated_resume') and st.session_state.generated_resume
+        # Main workflow tabs
+        tab1, tab2, tab3 = st.tabs(["🎯 Tailor Resume", "👁️ Preview Resume", "📥 Download Resume"])
         
-        if has_tailored:
-            st.success("✅ Tailored resume ready for export")
-            generated_time = st.session_state.generated_resume.get('timestamp', 'Unknown')
-            st.info(f"Generated: {generated_time}")
-        else:
-            st.info("ℹ️ No job-specific tailoring applied. Will generate standard resume.")
-        
-        # Resume type selection
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            resume_type = st.radio(
-                "Resume Type",
-                ["Standard Resume", "Tailored Resume (if available)"]
-            )
-        
-        with col2:
-            format_choice = st.selectbox("Export Format", ["PDF", "Word Document"])
-        
-        # Use tailored data if available and selected
-        use_tailored = (resume_type == "Tailored Resume (if available)" and has_tailored)
-        job_analysis = st.session_state.generated_resume.get('job_analysis') if use_tailored else None
-        
-        generator = get_resume_generator()
-        preview = get_resume_preview()
-        
-        # Preview options
-        st.subheader("📋 Resume Preview Options")
-        
-        preview_tab1, preview_tab2 = st.tabs(["👁️ Visual Preview", "📊 Quick Summary"])
-        
-        with preview_tab1:
-            # Show visual preview
-            if use_tailored and has_tailored:
-                # Option to show comparison
-                show_comparison = st.checkbox("🔄 Show Standard vs Tailored Comparison")
-                
-                if show_comparison:
-                    preview.show_comparison(profile, job_analysis, generator)
-                else:
-                    preview.display_preview(profile, job_analysis, generator)
-            else:
-                preview.display_preview(profile)
-        
-        with preview_tab2:
-            # Show quick summary
-            col1, col2 = st.columns(2)
+        with tab1:
+            st.subheader("🎯 Resume Tailoring")
+            st.markdown("**Option 1: Standard Resume** - Uses your profile as-is")
+            st.markdown("**Option 2: Job-Tailored Resume** - Optimized for a specific job posting")
             
-            with col1:
-                st.write("**Contact Information:**")
-                st.write(f"Name: {profile.get('name', 'Not set')}")
-                st.write(f"Email: {profile.get('email', 'Not set')}")
-                st.write(f"Phone: {profile.get('phone', 'Not set')}")
+            resume_type = st.radio(
+                "Choose Resume Type:",
+                ["Standard Resume", "Job-Tailored Resume"],
+                help="Standard uses your profile as-is. Job-Tailored optimizes for a specific position."
+            )
+            
+            if resume_type == "Job-Tailored Resume":
+                st.markdown("### 📋 Job Description Analysis")
+                st.markdown("Paste the job description below to tailor your resume for this specific position.")
                 
-                if use_tailored:
-                    st.write("**Professional Summary (Tailored):**")
-                    summary = generator.generate_professional_summary(profile, job_analysis)
-                    st.write(summary[:200] + "..." if len(summary) > 200 else summary)
+                job_description = st.text_area(
+                    "Job Description", 
+                    height=200,
+                    placeholder="Paste the complete job description here...",
+                    help="Include the full job posting - responsibilities, requirements, qualifications, etc."
+                )
+                
+                if st.button("🔍 Analyze Job & Tailor Resume", type="primary"):
+                    if job_description:
+                        try:
+                            with st.spinner("Analyzing job description and tailoring your resume..."):
+                                analyzer = get_job_analyzer()
+                                analysis = analyzer.analyze_job_description(job_description)
+                                
+                                # Calculate skills coverage
+                                all_skills = []
+                                for category in ['programming_skills', 'technologies', 'language_skills', 'certifications']:
+                                    skills_text = profile.get(category, '')
+                                    if skills_text:
+                                        all_skills.extend([s.strip() for s in skills_text.split(',') if s.strip()])
+                                
+                                coverage_score = analyzer.calculate_match_score(all_skills, analysis)
+                                
+                                # Store tailored resume data
+                                st.session_state.tailored_resume = {
+                                    'job_analysis': analysis,
+                                    'coverage_score': coverage_score,
+                                    'job_description': job_description,
+                                    'timestamp': datetime.now().isoformat()
+                                }
+                            
+                            st.success("✅ Resume tailored successfully!")
+                            
+                            # Show tailoring results
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                st.metric("Skills Coverage", f"{coverage_score}%", "Based on job requirements")
+                                st.write(f"**Experience Level Required:** {analysis['experience_level'].title()}")
+                            
+                            with col2:
+                                if analysis['priority_skills']:
+                                    st.write("**Key Skills for This Job:**")
+                                    for skill in analysis['priority_skills'][:5]:
+                                        priority_indicator = "🔥" if skill['in_requirements'] else "⭐"
+                                        st.write(f"{priority_indicator} {skill['skill']}")
+                            
+                            # Tailoring insights
+                            st.markdown("### 💡 Tailoring Applied")
+                            
+                            generator = get_resume_generator()
+                            
+                            # Skills insights
+                            original_skills = generator.generate_categorized_skills_text(profile)
+                            tailored_skills = generator.generate_tailored_skills(profile, analysis)
+                            
+                            if original_skills != tailored_skills:
+                                with st.expander("🛠️ Skills Optimization"):
+                                    st.write("**Skills have been reordered to highlight job-relevant capabilities:**")
+                                    st.write(f"**Optimized Skills:** {tailored_skills[:200]}...")
+                            
+                            # Experience insights
+                            experiences = profile.get('experiences', [])
+                            if experiences:
+                                prioritized_exp = generator.prioritize_experiences(experiences, analysis)
+                                if experiences != prioritized_exp:
+                                    with st.expander("💼 Experience Prioritization"):
+                                        st.write("**Experience has been reordered by relevance to this job:**")
+                                        for i, exp in enumerate(prioritized_exp[:3]):
+                                            st.write(f"{i+1}. {exp.get('title', 'N/A')} - {exp.get('company', 'N/A')}")
+                            
+                            st.info("🎯 Switch to the 'Preview Resume' tab to see your tailored resume!")
+                            
+                        except Exception as e:
+                            st.error(f"Error analyzing job description: {str(e)}")
+                    else:
+                        st.error("Please provide a job description.")
+                
+                # Show current tailored resume status
+                if hasattr(st.session_state, 'tailored_resume'):
+                    with st.expander("ℹ️ Current Tailored Resume Status"):
+                        tailored_data = st.session_state.tailored_resume
+                        st.write(f"**Created:** {tailored_data.get('timestamp', 'Unknown')}")
+                        st.write(f"**Skills Coverage:** {tailored_data.get('coverage_score', 0)}%")
+                        
+                        if st.button("🗑️ Clear Tailored Resume"):
+                            del st.session_state.tailored_resume
+                            st.rerun()
+            else:
+                st.info("📄 Standard resume will use your profile information as entered.")
+        
+        with tab2:
+            st.subheader("👁️ Resume Preview")
+            
+            # Determine which resume to preview
+            is_tailored = (resume_type == "Job-Tailored Resume" and 
+                          hasattr(st.session_state, 'tailored_resume'))
+            
+            job_analysis = st.session_state.tailored_resume.get('job_analysis') if is_tailored else None
+            
+            generator = get_resume_generator()
+            preview = get_resume_preview()
+            
+            # Preview controls
+            col1, col2 = st.columns(2)
+            with col1:
+                if is_tailored:
+                    st.success("🎯 Previewing: Job-Tailored Resume")
+                    coverage = st.session_state.tailored_resume.get('coverage_score', 0)
+                    st.metric("Skills Coverage", f"{coverage}%")
+                else:
+                    st.info("📄 Previewing: Standard Resume")
             
             with col2:
-                if use_tailored:
-                    st.write("**Skills (Prioritized for Job):**")
-                    tailored_skills = generator.generate_tailored_skills(
-                        profile.get('skills', ''), job_analysis
-                    )
-                    st.write(tailored_skills[:150] + "..." if len(tailored_skills) > 150 else tailored_skills)
+                if is_tailored:
+                    show_comparison = st.checkbox("🔄 Show Standard vs Tailored Comparison")
+                    if show_comparison:
+                        preview.show_comparison(profile, job_analysis, generator)
+                    else:
+                        preview.display_preview(profile, job_analysis, generator)
                 else:
-                    st.write("**Skills:**")
-                    skills = profile.get('skills', 'Not set')
-                    st.write(skills[:150] + "..." if len(skills) > 150 else skills)
+                    preview.display_preview(profile)
             
-            # Experience preview
-            experiences = profile.get('experiences', [])
-            if experiences:
-                if use_tailored:
-                    st.write("**Experience (Prioritized by Relevance):**")
-                    prioritized_exp = generator.prioritize_experiences(experiences, job_analysis)
-                    for i, exp in enumerate(prioritized_exp[:3]):
-                        st.write(f"{i+1}. {exp.get('title', 'N/A')} - {exp.get('company', 'N/A')}")
-                else:
-                    st.write("**Experience:**")
-                    for i, exp in enumerate(experiences[:3]):
-                        st.write(f"{i+1}. {exp.get('title', 'N/A')} - {exp.get('company', 'N/A')}")
+            if not is_tailored and resume_type == "Job-Tailored Resume":
+                st.warning("⚠️ No tailored resume available. Please analyze a job description in the 'Tailor Resume' tab first.")
         
-        # Export buttons
-        st.divider()
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("📥 Generate & Download", type="primary", use_container_width=True):
+        with tab3:
+            st.subheader("📥 Download Resume")
+            
+            # Download options
+            format_choice = st.selectbox("Export Format", ["PDF", "Word Document"])
+            
+            # Determine final resume configuration
+            final_is_tailored = (resume_type == "Job-Tailored Resume" and 
+                               hasattr(st.session_state, 'tailored_resume'))
+            
+            final_job_analysis = st.session_state.tailored_resume.get('job_analysis') if final_is_tailored else None
+            
+            # Show what will be downloaded
+            if final_is_tailored:
+                st.success("🎯 Ready to download: Job-Tailored Resume")
+                coverage = st.session_state.tailored_resume.get('coverage_score', 0)
+                st.info(f"Skills Coverage: {coverage}% | Optimized for the analyzed job")
+            else:
+                st.info("📄 Ready to download: Standard Resume")
+            
+            # Download button
+            if st.button("📥 Generate & Download Resume", type="primary", use_container_width=True):
                 try:
                     with st.spinner(f"Generating {format_choice.lower()}..."):
                         if format_choice == "PDF":
-                            buffer = generator.generate_pdf_resume(profile, job_analysis)
-                            filename = f"resume_{'tailored' if use_tailored else 'standard'}.pdf"
+                            buffer = generator.generate_pdf_resume(profile, final_job_analysis)
+                            filename = f"resume_{'tailored' if final_is_tailored else 'standard'}.pdf"
                             mime_type = "application/pdf"
                         else:  # Word Document
-                            buffer = generator.generate_word_resume(profile, job_analysis)
-                            filename = f"resume_{'tailored' if use_tailored else 'standard'}.docx"
+                            buffer = generator.generate_word_resume(profile, final_job_analysis)
+                            filename = f"resume_{'tailored' if final_is_tailored else 'standard'}.docx"
                             mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     
                     st.download_button(
@@ -605,12 +860,19 @@ elif selected == "Export Resume":
                     
                 except Exception as e:
                     st.error(f"Error generating {format_choice.lower()}: {str(e)}")
-        
-        with col2:
-            if st.button("🔄 Clear Tailored Resume", use_container_width=True):
-                if hasattr(st.session_state, 'generated_resume'):
-                    del st.session_state.generated_resume
-                if hasattr(st.session_state, 'job_analysis'):
-                    del st.session_state.job_analysis
-                st.success("Tailored resume data cleared.")
-                st.rerun()
+            
+            # Additional options
+            st.divider()
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🔄 Generate Different Format"):
+                    st.info("Select a different format above and click 'Generate & Download'")
+            
+            with col2:
+                if final_is_tailored and st.button("📊 View Tailoring Details"):
+                    analysis = st.session_state.tailored_resume.get('job_analysis', {})
+                    with st.expander("Tailoring Details", expanded=True):
+                        st.write(f"**Priority Skills:** {', '.join([s['skill'] for s in analysis.get('priority_skills', [])[:5]])}")
+                        st.write(f"**Experience Level:** {analysis.get('experience_level', 'Unknown').title()}")
+                        st.write(f"**Key Requirements:** {len(analysis.get('requirements', []))} identified")

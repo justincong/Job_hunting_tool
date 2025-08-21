@@ -1,12 +1,23 @@
 {
-  "name": "zhaojun",
-  "email": "justincong1990@gmail.com",
-  "phone": "2065499383",
-  "location": "",
-  "linkedin": "",
-  "website": "",
-  "summary": "Data analyst with 8+ years of experience specializing in data engineering and financial analytics. Skilled in designing scalable\nETL/ELT pipelines, building integrated data layers, and developing dashboards that enable data-driven decision-making across\nFinance, FP&A, and Accounting teams. Proven track record of delivering $2M+ in annual cost savings through curated data\nproducts and resolving an $80M financial discrepancy to ensure SOX and regulatory compliance. Proficient in SQL, Python, and\nSpark, with expertise in data visualization and pipeline monitoring. Adept at transforming complex, large-scale datasets into\nactionable insights, bridging business requirements with technical solutions through cross-functional collaboration.",
-  "skills": "\u2022 Programming Skills: Python, SQL, Spark/Hive, Java, Tableau, Microstrategy, Sensor, Tellius, Excel\n\u2022 Technologies: Linux, Docker, Hadoop, TensorFlow, Sklearn, Pandas, Langchain, Streamlit, FastApi\n\u2022 Certifications And Awards: Chinese Private Equity Fund Practitioner Certification (2018), Google Analytics Certificate, Coursera\nETL, Finance & Accounting Certificate\n\u2022 Languages: Fluent in English, Mandarin",
-  "experiences": [],
-  "last_updated": "2025-08-21T12:11:08.536885"
+  "name": "Zhaojun Cong",
+  "email": "Justincong1990@gmail.com",
+  "phone": "206-549-9383",
+  "location": "Seattle WA",
+  "linkedin": "linkedin.com/in/zhaojuncong/",
+  "website": "github.com/justincong",
+  "summary": "I specialize in data engineering and financial analytics with a focus on building reliable, compliant, and scalable data systems. Over the years, I\u2019ve supported diverse stakeholders\u2014including Finance, FP&A, and Accounting teams\u2014by designing ETL/ELT pipelines, automating reporting workflows, and ensuring compliance with regulatory standards such as SOX, MSB, and tax reporting.\nMy experience includes building integrated data layers (IDL), migrating reporting processes from MSTR to Tellius, and developing dashboards for leadership reporting and pipeline monitoring. I enjoy working at the intersection of finance and technology, helping teams manage budgets, optimize costs, and gain insights through data-driven decision-making.\nI also have hands-on experience in behavior analysis, data quality control, and curated dataset design, ensuring accuracy and reliability in financial reporting. More recently, I\u2019ve been exploring machine learning and large language models\u2014experimenting with Text-to-SQL, RAG, and LangChain\u2014to unlock new ways of interacting with financial data.\nAt my core, I\u2019m passionate about using data to bridge business needs and technical solutions, while continuously improving systems for scalability, compliance, and innovation.\n",
+  "programming_skills": "",
+  "technologies": "",
+  "language_skills": "",
+  "certifications": "",
+  "experiences": [
+    {
+      "title": "Business System Analyst",
+      "company": "ccoe china",
+      "duration": "Jul 2022 - Present",
+      "description": "\u2022Designed and maintained 200+ scalable ETL/ELT pipelines (Spark, SQL, Python) to process large-scale financial datasets across pay\nments, revenue, and compliance domains.\n\u2022Built curated OLAP datasets and IDL layers, enabling analysts and data scientists to run advanced analytics and ML models.\n\u2022Developed dashboards and insight reports for leadership, driving 2M dollar aditional revenue by opitimization of payment costs.\n\u2022Delivered regulatory and compliance reporting (USA MSB, and ADTL), ensuring audit readiness and SOX compliance.\n\u2022Partnered with Finance, FP&A, and Accounting teams to support budgeting, forecasting, reconciliation, and contract savings analysis\n\u2022Collaborated across engineering and business stakeholders to resolve data issues, monitor pipeline health, and deliver actionable insig\nhts.\nPingAn "
+    }
+  ],
+  "education": [],
+  "last_updated": "2025-08-21T13:09:02.543912"
 }

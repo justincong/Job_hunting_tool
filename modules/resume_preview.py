@@ -3,80 +3,7 @@ from typing import Dict
 
 class ResumePreview:
     def __init__(self):
-        self.preview_style = """
-        <style>
-        .resume-preview {
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 10px 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            font-family: 'Times New Roman', serif;
-            line-height: 1.4;
-        }
-        .resume-header {
-            text-align: center;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        .resume-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        .resume-contact {
-            font-size: 12px;
-            color: #666;
-        }
-        .resume-section {
-            margin: 15px 0;
-        }
-        .resume-section-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: #333;
-            text-transform: uppercase;
-            border-bottom: 1px solid #666;
-            padding-bottom: 2px;
-            margin-bottom: 8px;
-        }
-        .resume-content {
-            font-size: 12px;
-            color: #333;
-            margin-bottom: 8px;
-        }
-        .resume-job-title {
-            font-weight: bold;
-            font-size: 12px;
-        }
-        .resume-company {
-            font-style: italic;
-            color: #555;
-        }
-        .resume-duration {
-            float: right;
-            color: #666;
-            font-size: 11px;
-        }
-        .resume-description {
-            margin-top: 4px;
-            font-size: 11px;
-            text-align: justify;
-        }
-        .skills-tag {
-            background-color: #f0f0f0;
-            color: #333;
-            padding: 2px 6px;
-            margin: 1px 2px;
-            border-radius: 3px;
-            font-size: 10px;
-            display: inline-block;
-        }
-        </style>
-        """
+        pass
     
     def escape_html(self, text: str) -> str:
         """Escape HTML special characters"""
@@ -84,100 +11,15 @@ class ResumePreview:
             return text
         return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#x27;')
     
-    def generate_html_preview(self, profile: Dict, job_analysis: Dict = None, generator=None) -> str:
-        """Generate HTML preview of the resume"""
-        
-        # Use generator to get tailored content if available
-        if generator and job_analysis:
-            summary = generator.generate_professional_summary(profile, job_analysis)
-            skills = generator.generate_tailored_skills(profile.get('skills', ''), job_analysis)
-            experiences = generator.prioritize_experiences(profile.get('experiences', []), job_analysis)
-        else:
-            summary = profile.get('summary', '')
-            skills = profile.get('skills', '')
-            experiences = profile.get('experiences', [])
-        
-        # Start building HTML
-        html = f"{self.preview_style}<div class='resume-preview'>"
-        
-        # Header
-        html += "<div class='resume-header'>"
-        html += f"<div class='resume-name'>{self.escape_html(profile.get('name', 'Your Name'))}</div>"
-        
-        # Contact info
-        contact_parts = []
-        if profile.get('email'):
-            contact_parts.append(self.escape_html(profile['email']))
-        if profile.get('phone'):
-            contact_parts.append(self.escape_html(profile['phone']))
-        if profile.get('location'):
-            contact_parts.append(self.escape_html(profile['location']))
-        if profile.get('linkedin'):
-            contact_parts.append(self.escape_html(profile['linkedin']))
-        
-        if contact_parts:
-            html += f"<div class='resume-contact'>{' | '.join(contact_parts)}</div>"
-        
-        html += "</div>"
-        
-        # Professional Summary
-        if summary:
-            html += "<div class='resume-section'>"
-            html += "<div class='resume-section-title'>Professional Summary</div>"
-            html += f"<div class='resume-content'>{self.escape_html(summary)}</div>"
-            html += "</div>"
-        
-        # Skills
-        if skills:
-            html += "<div class='resume-section'>"
-            html += "<div class='resume-section-title'>Skills</div>"
-            html += "<div class='resume-content'>"
-            
-            # Convert skills to tags
-            skills_list = [skill.strip() for skill in skills.split(',') if skill.strip()]
-            for skill in skills_list:
-                html += f"<span class='skills-tag'>{self.escape_html(skill)}</span>"
-            
-            html += "</div></div>"
-        
-        # Experience
-        if experiences:
-            html += "<div class='resume-section'>"
-            html += "<div class='resume-section-title'>Professional Experience</div>"
-            
-            for exp in experiences:
-                html += "<div class='resume-content'>"
-                
-                # Title and duration
-                html += f"<div class='resume-job-title'>{self.escape_html(exp.get('title', 'Position'))}"
-                if exp.get('duration'):
-                    html += f"<span class='resume-duration'>{self.escape_html(exp.get('duration'))}</span>"
-                html += "</div>"
-                
-                # Company
-                if exp.get('company'):
-                    html += f"<div class='resume-company'>{self.escape_html(exp.get('company'))}</div>"
-                
-                # Description
-                if exp.get('description'):
-                    # Limit description length for preview
-                    desc = exp.get('description', '')
-                    if len(desc) > 200:
-                        desc = desc[:200] + "..."
-                    html += f"<div class='resume-description'>{self.escape_html(desc)}</div>"
-                
-                html += "</div>"
-            
-            html += "</div>"
-        
-        html += "</div>"
-        return html
     
     def display_preview(self, profile: Dict, job_analysis: Dict = None, generator=None):
         """Display the resume preview in Streamlit"""
         
         # Use a simpler approach - display sections separately
         st.markdown("### 👁️ Resume Preview")
+        
+        # Debug info
+        st.info("✅ Using new Streamlit-native preview (no HTML truncation issues)")
         
         # Create a container with styling
         with st.container():
@@ -244,11 +86,11 @@ class ResumePreview:
             # Professional Summary
             if generator and job_analysis:
                 summary = generator.generate_professional_summary(profile, job_analysis)
-                skills = generator.generate_tailored_skills(profile.get('skills', ''), job_analysis)
+                skills = generator.generate_tailored_skills(profile, job_analysis)
                 experiences = generator.prioritize_experiences(profile.get('experiences', []), job_analysis)
             else:
                 summary = profile.get('summary', '')
-                skills = profile.get('skills', '')
+                skills = generator.generate_categorized_skills_text(profile) if generator else ""
                 experiences = profile.get('experiences', [])
             
             if summary:
@@ -282,6 +124,28 @@ class ResumePreview:
                             st.write(desc)
                         st.write("")  # Add space between experiences
             
+            # Education
+            education = profile.get('education', [])
+            if education:
+                st.markdown('<div class="preview-section-title">Education</div>', unsafe_allow_html=True)
+                for edu in education:
+                    with st.container():
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            degree_field = edu.get('degree', 'Degree')
+                            if edu.get('field'):
+                                degree_field += f" in {edu.get('field')}"
+                            st.markdown(f"**{degree_field}** - *{edu.get('institution', 'Institution')}*")
+                        with col2:
+                            st.write(edu.get('year', ''))
+                        
+                        if edu.get('details'):
+                            details = edu.get('details', '')
+                            if len(details) > 200:
+                                details = details[:200] + "..."
+                            st.write(details)
+                        st.write("")  # Add space between education entries
+            
             st.markdown('</div>', unsafe_allow_html=True)
         
         # Add preview notes
@@ -303,8 +167,9 @@ class ResumePreview:
         st.markdown("#### 🔍 Key Differences")
         
         # Skills comparison
-        original_skills = [s.strip() for s in profile.get('skills', '').split(',') if s.strip()]
-        tailored_skills_str = generator.generate_tailored_skills(profile.get('skills', ''), job_analysis)
+        original_skills_str = generator.generate_categorized_skills_text(profile)
+        original_skills = [s.strip() for s in original_skills_str.split(',') if s.strip()]
+        tailored_skills_str = generator.generate_tailored_skills(profile, job_analysis)
         tailored_skills = [s.strip() for s in tailored_skills_str.split(',') if s.strip()]
         
         col1, col2 = st.columns(2)
