@@ -675,204 +675,181 @@ elif selected == "Export Resume":
         tab1, tab2, tab3 = st.tabs(["🎯 Tailor Resume", "👁️ Preview Resume", "📥 Download Resume"])
         
         with tab1:
-            st.subheader("🎯 Resume Tailoring")
-            st.markdown("**Option 1: Standard Resume** - Uses your profile as-is")
-            st.markdown("**Option 2: Job-Tailored Resume** - Optimized for a specific job posting")
+            st.subheader("🎯 Job-Tailored Resume")
+            st.markdown("Paste the job description below to create a resume tailored specifically for this position.")
             
-            resume_type = st.radio(
-                "Choose Resume Type:",
-                ["Standard Resume", "Job-Tailored Resume"],
-                help="Standard uses your profile as-is. Job-Tailored optimizes for a specific position."
+            job_description = st.text_area(
+                "Job Description", 
+                height=200,
+                placeholder="Paste the complete job description here...",
+                help="Include the full job posting - responsibilities, requirements, qualifications, etc."
             )
             
-            if resume_type == "Job-Tailored Resume":
-                st.markdown("### 📋 Job Description Analysis")
-                st.markdown("Paste the job description below to tailor your resume for this specific position.")
-                
-                job_description = st.text_area(
-                    "Job Description", 
-                    height=200,
-                    placeholder="Paste the complete job description here...",
-                    help="Include the full job posting - responsibilities, requirements, qualifications, etc."
-                )
-                
-                if st.button("🔍 Analyze Job & Tailor Resume", type="primary"):
-                    if job_description:
-                        try:
-                            with st.spinner("Analyzing job description and tailoring your resume..."):
-                                analyzer = get_job_analyzer()
-                                analysis = analyzer.analyze_job_description(job_description)
-                                
-                                # Calculate skills coverage
-                                all_skills = []
-                                for category in ['programming_skills', 'technologies', 'language_skills', 'certifications']:
-                                    skills_text = profile.get(category, '')
-                                    if skills_text:
-                                        all_skills.extend([s.strip() for s in skills_text.split(',') if s.strip()])
-                                
-                                coverage_score = analyzer.calculate_match_score(all_skills, analysis)
-                                
-                                # Store tailored resume data
-                                st.session_state.tailored_resume = {
-                                    'job_analysis': analysis,
-                                    'coverage_score': coverage_score,
-                                    'job_description': job_description,
-                                    'timestamp': datetime.now().isoformat()
-                                }
+            if st.button("🔍 Analyze Job & Tailor Resume", type="primary"):
+                if job_description:
+                    try:
+                        with st.spinner("Analyzing job description and tailoring your resume..."):
+                            analyzer = get_job_analyzer()
+                            analysis = analyzer.analyze_job_description(job_description)
                             
-                            st.success("✅ Resume tailored successfully!")
+                            # Calculate skills coverage
+                            all_skills = []
+                            for category in ['programming_skills', 'technologies', 'language_skills', 'certifications']:
+                                skills_text = profile.get(category, '')
+                                if skills_text:
+                                    all_skills.extend([s.strip() for s in skills_text.split(',') if s.strip()])
                             
-                            # Show tailoring results
-                            col1, col2 = st.columns(2)
+                            coverage_score = analyzer.calculate_match_score(all_skills, analysis)
                             
-                            with col1:
-                                st.metric("Skills Coverage", f"{coverage_score}%", "Based on job requirements")
-                                st.write(f"**Experience Level Required:** {analysis['experience_level'].title()}")
-                            
-                            with col2:
-                                if analysis['priority_skills']:
-                                    st.write("**Key Skills for This Job:**")
-                                    for skill in analysis['priority_skills'][:5]:
-                                        priority_indicator = "🔥" if skill['in_requirements'] else "⭐"
-                                        st.write(f"{priority_indicator} {skill['skill']}")
-                            
-                            # Tailoring insights
-                            st.markdown("### 💡 Tailoring Applied")
-                            
-                            generator = get_resume_generator()
-                            
-                            # Skills insights
-                            original_skills = generator.generate_categorized_skills_text(profile)
-                            tailored_skills = generator.generate_tailored_skills(profile, analysis)
-                            
-                            if original_skills != tailored_skills:
-                                with st.expander("🛠️ Skills Optimization"):
-                                    st.write("**Skills have been reordered to highlight job-relevant capabilities:**")
-                                    st.write(f"**Optimized Skills:** {tailored_skills[:200]}...")
-                            
-                            # Experience insights
-                            experiences = profile.get('experiences', [])
-                            if experiences:
-                                prioritized_exp = generator.prioritize_experiences(experiences, analysis)
-                                if experiences != prioritized_exp:
-                                    with st.expander("💼 Experience Prioritization"):
-                                        st.write("**Experience has been reordered by relevance to this job:**")
-                                        for i, exp in enumerate(prioritized_exp[:3]):
-                                            st.write(f"{i+1}. {exp.get('title', 'N/A')} - {exp.get('company', 'N/A')}")
-                            
-                            st.info("🎯 Switch to the 'Preview Resume' tab to see your tailored resume!")
-                            
-                        except Exception as e:
-                            st.error(f"Error analyzing job description: {str(e)}")
-                    else:
-                        st.error("Please provide a job description.")
-                
-                # Show current tailored resume status
-                if hasattr(st.session_state, 'tailored_resume'):
-                    with st.expander("ℹ️ Current Tailored Resume Status"):
-                        tailored_data = st.session_state.tailored_resume
-                        st.write(f"**Created:** {tailored_data.get('timestamp', 'Unknown')}")
-                        st.write(f"**Skills Coverage:** {tailored_data.get('coverage_score', 0)}%")
+                            # Store tailored resume data
+                            st.session_state.tailored_resume = {
+                                'job_analysis': analysis,
+                                'coverage_score': coverage_score,
+                                'job_description': job_description,
+                                'timestamp': datetime.now().isoformat()
+                            }
                         
-                        if st.button("🗑️ Clear Tailored Resume"):
-                            del st.session_state.tailored_resume
-                            st.rerun()
-            else:
-                st.info("📄 Standard resume will use your profile information as entered.")
+                        st.success("✅ Resume tailored successfully!")
+                        
+                        # Show tailoring results
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.metric("Skills Coverage", f"{coverage_score}%", "Based on job requirements")
+                            st.write(f"**Experience Level Required:** {analysis['experience_level'].title()}")
+                        
+                        with col2:
+                            if analysis['priority_skills']:
+                                st.write("**Key Skills for This Job:**")
+                                for skill in analysis['priority_skills'][:5]:
+                                    priority_indicator = "🔥" if skill['in_requirements'] else "⭐"
+                                    st.write(f"{priority_indicator} {skill['skill']}")
+                        
+                        # Tailoring insights
+                        st.markdown("### 💡 Tailoring Applied")
+                        
+                        generator = get_resume_generator()
+                        
+                        # Skills insights
+                        original_skills = generator.generate_categorized_skills_text(profile)
+                        tailored_skills = generator.generate_tailored_skills(profile, analysis)
+                        
+                        if original_skills != tailored_skills:
+                            with st.expander("🛠️ Skills Optimization"):
+                                st.write("**Skills have been reordered to highlight job-relevant capabilities:**")
+                                st.write(f"**Optimized Skills:** {tailored_skills[:200]}...")
+                        
+                        # Experience insights
+                        experiences = profile.get('experiences', [])
+                        if experiences:
+                            prioritized_exp = generator.prioritize_experiences(experiences, analysis)
+                            if experiences != prioritized_exp:
+                                with st.expander("💼 Experience Prioritization"):
+                                    st.write("**Experience has been reordered by relevance to this job:**")
+                                    for i, exp in enumerate(prioritized_exp[:3]):
+                                        st.write(f"{i+1}. {exp.get('title', 'N/A')} - {exp.get('company', 'N/A')}")
+                        
+                        st.info("🎯 Switch to the 'Preview Resume' tab to see your tailored resume!")
+                        
+                    except Exception as e:
+                        st.error(f"Error analyzing job description: {str(e)}")
+                else:
+                    st.error("Please provide a job description.")
+            
+            # Show current tailored resume status
+            if hasattr(st.session_state, 'tailored_resume'):
+                with st.expander("ℹ️ Current Tailored Resume Status"):
+                    tailored_data = st.session_state.tailored_resume
+                    st.write(f"**Created:** {tailored_data.get('timestamp', 'Unknown')}")
+                    st.write(f"**Skills Coverage:** {tailored_data.get('coverage_score', 0)}%")
+                    
+                    if st.button("🗑️ Clear Tailored Resume"):
+                        del st.session_state.tailored_resume
+                        st.rerun()
         
         with tab2:
             st.subheader("👁️ Resume Preview")
             
-            # Determine which resume to preview
-            is_tailored = (resume_type == "Job-Tailored Resume" and 
-                          hasattr(st.session_state, 'tailored_resume'))
-            
-            job_analysis = st.session_state.tailored_resume.get('job_analysis') if is_tailored else None
+            # Check if tailored resume exists
+            has_tailored = hasattr(st.session_state, 'tailored_resume')
+            job_analysis = st.session_state.tailored_resume.get('job_analysis') if has_tailored else None
             
             generator = get_resume_generator()
             preview = get_resume_preview()
             
-            # Preview controls
-            col1, col2 = st.columns(2)
-            with col1:
-                if is_tailored:
+            if has_tailored:
+                # Preview controls
+                col1, col2 = st.columns(2)
+                with col1:
                     st.success("🎯 Previewing: Job-Tailored Resume")
                     coverage = st.session_state.tailored_resume.get('coverage_score', 0)
                     st.metric("Skills Coverage", f"{coverage}%")
-                else:
-                    st.info("📄 Previewing: Standard Resume")
-            
-            with col2:
-                if is_tailored:
+                
+                with col2:
                     show_comparison = st.checkbox("🔄 Show Standard vs Tailored Comparison")
-                    if show_comparison:
-                        preview.show_comparison(profile, job_analysis, generator)
-                    else:
-                        preview.display_preview(profile, job_analysis, generator)
+                
+                if show_comparison:
+                    preview.show_comparison(profile, job_analysis, generator)
                 else:
-                    preview.display_preview(profile)
-            
-            if not is_tailored and resume_type == "Job-Tailored Resume":
+                    preview.display_preview(profile, job_analysis, generator)
+            else:
                 st.warning("⚠️ No tailored resume available. Please analyze a job description in the 'Tailor Resume' tab first.")
+                st.info("💡 Once you analyze a job description, your tailored resume preview will appear here.")
         
         with tab3:
             st.subheader("📥 Download Resume")
             
-            # Download options
-            format_choice = st.selectbox("Export Format", ["PDF", "Word Document"])
+            # Check if tailored resume exists
+            has_tailored = hasattr(st.session_state, 'tailored_resume')
             
-            # Determine final resume configuration
-            final_is_tailored = (resume_type == "Job-Tailored Resume" and 
-                               hasattr(st.session_state, 'tailored_resume'))
-            
-            final_job_analysis = st.session_state.tailored_resume.get('job_analysis') if final_is_tailored else None
-            
-            # Show what will be downloaded
-            if final_is_tailored:
-                st.success("🎯 Ready to download: Job-Tailored Resume")
+            if has_tailored:
+                job_analysis = st.session_state.tailored_resume.get('job_analysis')
                 coverage = st.session_state.tailored_resume.get('coverage_score', 0)
+                
+                st.success("🎯 Ready to download: Job-Tailored Resume")
                 st.info(f"Skills Coverage: {coverage}% | Optimized for the analyzed job")
-            else:
-                st.info("📄 Ready to download: Standard Resume")
-            
-            # Download button
-            if st.button("📥 Generate & Download Resume", type="primary", use_container_width=True):
-                try:
-                    with st.spinner(f"Generating {format_choice.lower()}..."):
-                        if format_choice == "PDF":
-                            buffer = generator.generate_pdf_resume(profile, final_job_analysis)
-                            filename = f"resume_{'tailored' if final_is_tailored else 'standard'}.pdf"
-                            mime_type = "application/pdf"
-                        else:  # Word Document
-                            buffer = generator.generate_word_resume(profile, final_job_analysis)
-                            filename = f"resume_{'tailored' if final_is_tailored else 'standard'}.docx"
-                            mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    
-                    st.download_button(
-                        label=f"📥 Download {format_choice}",
-                        data=buffer.getvalue(),
-                        file_name=filename,
-                        mime=mime_type,
-                        type="primary"
-                    )
-                    
-                    st.success(f"✅ {format_choice} generated successfully! Click the download button above.")
-                    
-                except Exception as e:
-                    st.error(f"Error generating {format_choice.lower()}: {str(e)}")
-            
-            # Additional options
-            st.divider()
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("🔄 Generate Different Format"):
-                    st.info("Select a different format above and click 'Generate & Download'")
-            
-            with col2:
-                if final_is_tailored and st.button("📊 View Tailoring Details"):
+                
+                # Download options
+                format_choice = st.selectbox("Export Format", ["PDF", "Word Document"])
+                
+                # Download button - generates and starts download immediately
+                if st.button("📥 Generate & Download Resume", type="primary", use_container_width=True):
+                    try:
+                        with st.spinner(f"Generating {format_choice.lower()}..."):
+                            generator = get_resume_generator()
+                            
+                            if format_choice == "PDF":
+                                buffer = generator.generate_pdf_resume(profile, job_analysis)
+                                filename = "resume_tailored.pdf"
+                                mime_type = "application/pdf"
+                            else:  # Word Document
+                                buffer = generator.generate_word_resume(profile, job_analysis)
+                                filename = "resume_tailored.docx"
+                                mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        
+                        # Immediate download
+                        st.download_button(
+                            label=f"📥 Download {format_choice}",
+                            data=buffer.getvalue(),
+                            file_name=filename,
+                            mime=mime_type,
+                            type="primary",
+                            use_container_width=True
+                        )
+                        
+                    except Exception as e:
+                        st.error(f"Error generating {format_choice.lower()}: {str(e)}")
+                
+                # Tailoring details
+                st.divider()
+                
+                if st.button("📊 View Tailoring Details", use_container_width=True):
                     analysis = st.session_state.tailored_resume.get('job_analysis', {})
                     with st.expander("Tailoring Details", expanded=True):
                         st.write(f"**Priority Skills:** {', '.join([s['skill'] for s in analysis.get('priority_skills', [])[:5]])}")
                         st.write(f"**Experience Level:** {analysis.get('experience_level', 'Unknown').title()}")
                         st.write(f"**Key Requirements:** {len(analysis.get('requirements', []))} identified")
+            
+            else:
+                st.warning("⚠️ No tailored resume available. Please analyze a job description in the 'Tailor Resume' tab first.")
+                st.info("💡 Once you analyze a job description, you'll be able to download your tailored resume here.")

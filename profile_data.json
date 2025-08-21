@@ -6,18 +6,45 @@
   "linkedin": "linkedin.com/in/zhaojuncong/",
   "website": "github.com/justincong",
   "summary": "I specialize in data engineering and financial analytics with a focus on building reliable, compliant, and scalable data systems. Over the years, I\u2019ve supported diverse stakeholders\u2014including Finance, FP&A, and Accounting teams\u2014by designing ETL/ELT pipelines, automating reporting workflows, and ensuring compliance with regulatory standards such as SOX, MSB, and tax reporting.\nMy experience includes building integrated data layers (IDL), migrating reporting processes from MSTR to Tellius, and developing dashboards for leadership reporting and pipeline monitoring. I enjoy working at the intersection of finance and technology, helping teams manage budgets, optimize costs, and gain insights through data-driven decision-making.\nI also have hands-on experience in behavior analysis, data quality control, and curated dataset design, ensuring accuracy and reliability in financial reporting. More recently, I\u2019ve been exploring machine learning and large language models\u2014experimenting with Text-to-SQL, RAG, and LangChain\u2014to unlock new ways of interacting with financial data.\nAt my core, I\u2019m passionate about using data to bridge business needs and technical solutions, while continuously improving systems for scalability, compliance, and innovation.\n",
-  "programming_skills": "",
-  "technologies": "",
-  "language_skills": "",
-  "certifications": "",
+  "programming_skills": "Python, SQL, Spark/Hive, Java, Tableau, Microstrategy, Sensor, Tellius, Excel",
+  "technologies": "Linux, Docker, Hadoop, TensorFlow, Sklearn, Pandas, Langchain, Streamlit, FastApi",
+  "language_skills": "English, Mandarin Chinese",
+  "certifications": "Chinese Private Equity Fund Practitioner Certification (2018), Google Analytics Certificate, Coursera\nETL, Finance & Accounting Certificate",
   "experiences": [
     {
       "title": "Business System Analyst",
       "company": "ccoe china",
       "duration": "Jul 2022 - Present",
       "description": "\u2022Designed and maintained 200+ scalable ETL/ELT pipelines (Spark, SQL, Python) to process large-scale financial datasets across pay\nments, revenue, and compliance domains.\n\u2022Built curated OLAP datasets and IDL layers, enabling analysts and data scientists to run advanced analytics and ML models.\n\u2022Developed dashboards and insight reports for leadership, driving 2M dollar aditional revenue by opitimization of payment costs.\n\u2022Delivered regulatory and compliance reporting (USA MSB, and ADTL), ensuring audit readiness and SOX compliance.\n\u2022Partnered with Finance, FP&A, and Accounting teams to support budgeting, forecasting, reconciliation, and contract savings analysis\n\u2022Collaborated across engineering and business stakeholders to resolve data issues, monitor pipeline health, and deliver actionable insig\nhts.\nPingAn "
+    },
+    {
+      "title": "Business BI analyst",
+      "company": "PingAn Securities ",
+      "duration": "Oct 2021 - Jul 2022",
+      "description": "\u2022 Analyzed behavioral data from 20M+ investment clients using Hive SQL and Python to build segmentation models that boosted\ncustomer acquisition rates by 200%.\n\u2022 Collaborated with R&D teams to develop predictive models for evaluating customer conversion likelihood, enhancing marketing\ntargeting effectiveness through data-driven insights."
+    },
+    {
+      "title": "Financial Analyst",
+      "company": "China UnionPay Merchant Services ",
+      "duration": "Sep 2018 - Sep 2019",
+      "description": "Queried and processed operational, marketing, and financial data to generate monthly/quarterly reports and KPI visualizations.\n\u2022Maintained internal KPI dashboards and implemented data validation processes to ensure reliable financial tracking.\n\u2022Supported development planning by building forecasting models for long-term business strategy.\n\u2022Collaborated with Engineering and Product teams to troubleshoot and escalate complex issues in payment data pipelines."
     }
   ],
-  "education": [],
-  "last_updated": "2025-08-21T13:09:02.543912"
+  "education": [
+    {
+      "institution": "Seattle University",
+      "degree": "Master of Science",
+      "field": "Business Data Analytics",
+      "year": " 2019 - 2021",
+      "details": ""
+    },
+    {
+      "institution": "University of Washington",
+      "degree": "Bachelor",
+      "field": "Mathematics",
+      "year": "2010-2014",
+      "details": ""
+    }
+  ],
+  "last_updated": "2025-08-21T14:06:17.242045"
 }
