@@ -3,10 +3,9 @@ from streamlit_option_menu import option_menu
 import json
 import os
 from datetime import datetime
-from modules.resume_parser import ResumeParser
-from modules.job_analyzer import JobAnalyzer
 from modules.resume_generator import ResumeGenerator
 from modules.resume_preview import ResumePreview
+from modules.job_analyzer import JobAnalyzer
 
 # Page config
 st.set_page_config(
@@ -23,15 +22,10 @@ if 'profile_data' not in st.session_state:
 if 'job_analysis' not in st.session_state:
     st.session_state.job_analysis = None
 
-# Initialize parsers
-@st.cache_resource
-def get_resume_parser():
-    return ResumeParser()
+if 'selected_page' not in st.session_state:
+    st.session_state.selected_page = "Dashboard"
 
-@st.cache_resource
-def get_job_analyzer():
-    return JobAnalyzer()
-
+# Initialize components
 @st.cache_resource
 def get_resume_generator():
     return ResumeGenerator()
@@ -39,6 +33,10 @@ def get_resume_generator():
 @st.cache_resource
 def get_resume_preview():
     return ResumePreview()
+
+@st.cache_resource
+def get_job_analyzer():
+    return JobAnalyzer()
 
 # Load profile data if exists
 PROFILE_FILE = 'profile_data.json'
@@ -55,20 +53,34 @@ def save_profile(data):
 
 # Main navigation
 with st.sidebar:
+    menu_options = ["Dashboard", "Profile Manager", "Export Resume"]
+    
+    # Get current index based on session state
+    try:
+        current_index = menu_options.index(st.session_state.selected_page)
+    except ValueError:
+        current_index = 0
+        st.session_state.selected_page = "Dashboard"
+    
     selected = option_menu(
         "Resume Builder",
-        ["Dashboard", "Profile Manager", "Upload Resume", "Job Matcher", "Export Resume"],
-        icons=['house', 'person', 'upload', 'briefcase', 'download'],
+        menu_options,
+        icons=['house', 'person', 'download'],
         menu_icon="cast",
-        default_index=0,
+        default_index=current_index,
+        key="main_menu"
     )
+    
+    # Update session state when menu selection changes
+    if selected != st.session_state.selected_page:
+        st.session_state.selected_page = selected
 
 # Dashboard Page
-if selected == "Dashboard":
+if st.session_state.selected_page == "Dashboard":
     st.title("📄 Resume Builder & Refiner")
     st.markdown("Welcome to your intelligent resume refinement tool!")
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     
     with col1:
         st.metric("Profile Completeness", "0%", "Complete your profile")
@@ -76,26 +88,9 @@ if selected == "Dashboard":
     with col2:
         st.metric("Resumes Generated", "0", "No resumes yet")
     
-    with col3:
-        st.metric("Jobs Matched", "0", "Start matching jobs")
-    
-    st.markdown("### Quick Actions")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("🔧 Setup Profile", use_container_width=True):
-            st.switch_page("Profile Manager")
-    
-    with col2:
-        if st.button("📤 Upload Resume", use_container_width=True):
-            st.switch_page("Upload Resume")
-    
-    with col3:
-        if st.button("🎯 Match Job", use_container_width=True):
-            st.switch_page("Job Matcher")
 
 # Profile Manager Page
-elif selected == "Profile Manager":
+elif st.session_state.selected_page == "Profile Manager":
     st.title("👤 Profile Manager")
     st.markdown("Manage your professional information, experiences, and skills.")
     
@@ -433,233 +428,9 @@ elif selected == "Profile Manager":
                 st.session_state.temp_education = profile.get('education', []).copy()
                 st.rerun()
 
-# Upload Resume Page
-elif selected == "Upload Resume":
-    st.title("📤 Upload Resume")
-    st.markdown("Upload your existing resume to extract and populate your profile.")
-    
-    uploaded_file = st.file_uploader("Choose a resume file", type=['pdf', 'docx'])
-    
-    if uploaded_file is not None:
-        st.success(f"File uploaded: {uploaded_file.name}")
-        
-        if st.button("🔍 Parse Resume", type="primary"):
-            try:
-                with st.spinner("Parsing resume..."):
-                    parser = get_resume_parser()
-                    parsed_data = parser.parse_resume(uploaded_file)
-                
-                st.success("Resume parsed successfully!")
-                
-                # Display extracted information
-                st.subheader("Extracted Information")
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write("**Contact Information:**")
-                    st.write(f"Name: {parsed_data.get('name', 'Not found')}")
-                    st.write(f"Email: {parsed_data.get('email', 'Not found')}")
-                    st.write(f"Phone: {parsed_data.get('phone', 'Not found')}")
-                    st.write(f"LinkedIn: {parsed_data.get('linkedin', 'Not found')}")
-                
-                with col2:
-                    st.write("**Skills Found:**")
-                    skills = parsed_data.get('skills', '')
-                    if skills:
-                        st.write(skills)
-                    else:
-                        st.write("No skills extracted")
-                
-                # Experience
-                if parsed_data.get('experiences'):
-                    st.write("**Work Experience:**")
-                    for i, exp in enumerate(parsed_data['experiences']):
-                        with st.expander(f"Experience {i+1}"):
-                            st.write(f"**Title/Company:** {exp.get('title', 'N/A')}")
-                            st.write(f"**Duration:** {exp.get('duration', 'N/A')}")
-                            st.write(f"**Description:** {exp.get('description', 'N/A')}")
-                
-                # Option to update profile with parsed data
-                if st.button("📝 Update Profile with Parsed Data"):
-                    # Load existing profile
-                    existing_profile = load_profile()
-                    
-                    # Merge with parsed data (keeping existing data where available)
-                    updated_profile = {
-                        'name': parsed_data.get('name') or existing_profile.get('name', ''),
-                        'email': parsed_data.get('email') or existing_profile.get('email', ''),
-                        'phone': parsed_data.get('phone') or existing_profile.get('phone', ''),
-                        'linkedin': parsed_data.get('linkedin') or existing_profile.get('linkedin', ''),
-                        'location': existing_profile.get('location', ''),
-                        'website': existing_profile.get('website', ''),
-                        'summary': existing_profile.get('summary', ''),
-                        'skills': parsed_data.get('skills') or existing_profile.get('skills', ''),
-                        'experiences': parsed_data.get('experiences', []) + existing_profile.get('experiences', []),
-                        'last_updated': datetime.now().isoformat()
-                    }
-                    
-                    save_profile(updated_profile)
-                    st.success("Profile updated with parsed resume data!")
-                    st.info("Go to Profile Manager to review and edit the information.")
-                
-            except Exception as e:
-                st.error(f"Error parsing resume: {str(e)}")
-                st.info("Please try uploading a different file or check the file format.")
-
-# Job Matcher Page
-elif selected == "Job Matcher":
-    st.title("🎯 Job Matcher")
-    st.markdown("Input a job description to generate a tailored resume.")
-    
-    # Load profile to check if it exists
-    profile = load_profile()
-    
-    if not profile:
-        st.warning("⚠️ Please set up your profile first before matching jobs.")
-        if st.button("Go to Profile Manager"):
-            st.switch_page("Profile Manager")
-    else:
-        job_description = st.text_area("Job Description", height=200, placeholder="Paste the job description here...")
-        
-        if st.button("🔍 Analyze Job Description", type="primary"):
-            if job_description:
-                try:
-                    with st.spinner("Analyzing job description..."):
-                        analyzer = get_job_analyzer()
-                        analysis = analyzer.analyze_job_description(job_description)
-                        
-                        # Calculate match score with profile - combine all skill categories
-                        all_skills = []
-                        for category in ['programming_skills', 'technologies', 'language_skills', 'certifications']:
-                            skills_text = profile.get(category, '')
-                            if skills_text:
-                                all_skills.extend([s.strip() for s in skills_text.split(',') if s.strip()])
-                        
-                        match_score = analyzer.calculate_match_score(all_skills, analysis)
-                        analysis['matching_score'] = match_score
-                        
-                        # Store analysis in session state
-                        st.session_state.job_analysis = analysis
-                    
-                    st.success("Job description analyzed successfully!")
-                    
-                    # Display analysis results
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.subheader("📊 Job Analysis")
-                        st.metric("Match Score", f"{match_score}%", "Based on your skills")
-                        st.write(f"**Experience Level:** {analysis['experience_level'].title()}")
-                        
-                        # Technical skills
-                        if analysis['skills']['technical']:
-                            st.write("**Technical Skills Required:**")
-                            for skill in analysis['skills']['technical'][:10]:  # Show top 10
-                                st.write(f"• {skill}")
-                        
-                        # Soft skills
-                        if analysis['skills']['soft']:
-                            st.write("**Soft Skills Required:**")
-                            for skill in analysis['skills']['soft'][:5]:  # Show top 5
-                                st.write(f"• {skill}")
-                    
-                    with col2:
-                        st.subheader("🎯 Priority Skills")
-                        if analysis['priority_skills']:
-                            for skill in analysis['priority_skills'][:8]:
-                                priority_indicator = "🔥" if skill['in_requirements'] else "⭐"
-                                st.write(f"{priority_indicator} {skill['skill']} (mentioned {skill['frequency']} times)")
-                        
-                        st.subheader("🔑 Top Keywords")
-                        keywords = analysis['keywords'][:10]
-                        keyword_text = ", ".join([kw[0] for kw in keywords])
-                        st.write(keyword_text)
-                    
-                    # Requirements and Responsibilities
-                    if analysis['requirements']:
-                        st.subheader("📋 Key Requirements")
-                        for req in analysis['requirements'][:5]:  # Show top 5
-                            st.write(f"• {req}")
-                    
-                    if analysis['responsibilities']:
-                        st.subheader("💼 Key Responsibilities")
-                        for resp in analysis['responsibilities'][:5]:  # Show top 5
-                            st.write(f"• {resp}")
-                    
-                    # Tailoring suggestions
-                    st.subheader("💡 Resume Tailoring Suggestions")
-                    
-                    # Skills analysis
-                    your_skills = set([skill.lower().strip() for skill in profile_skills])
-                    job_skills = set([skill.lower() for skill in analysis['skills']['technical'] + analysis['skills']['soft']])
-                    
-                    matching_skills = your_skills & job_skills
-                    missing_skills = job_skills - your_skills
-                    
-                    if matching_skills:
-                        st.success(f"✅ **Skills to Highlight:** {', '.join(matching_skills)}")
-                    
-                    if missing_skills:
-                        st.warning(f"⚠️ **Skills to Consider Adding:** {', '.join(list(missing_skills)[:5])}")
-                    
-                    # Experience suggestions
-                    if analysis['experience_level'] == 'entry':
-                        st.info("💡 Emphasize education, projects, internships, and relevant coursework")
-                    elif analysis['experience_level'] == 'senior':
-                        st.info("💡 Highlight leadership experience, major projects, and team management")
-                    
-                except Exception as e:
-                    st.error(f"Error analyzing job description: {str(e)}")
-            else:
-                st.error("Please provide a job description.")
-        
-        # Show generate resume option if analysis exists
-        if st.session_state.job_analysis:
-            st.divider()
-            st.subheader("📄 Generate Tailored Resume")
-            
-            if st.button("🚀 Generate Tailored Resume", type="primary"):
-                try:
-                    with st.spinner("Generating tailored resume..."):
-                        generator = get_resume_generator()
-                        
-                        # Store generated resume info in session state
-                        st.session_state.generated_resume = {
-                            'profile': profile,
-                            'job_analysis': st.session_state.job_analysis,
-                            'timestamp': datetime.now().isoformat()
-                        }
-                    
-                    st.success("✅ Tailored resume generated successfully!")
-                    st.info("📥 Go to 'Export Resume' to download your customized resume.")
-                    
-                    # Show preview of changes
-                    st.subheader("📋 Resume Tailoring Preview")
-                    
-                    # Show prioritized skills
-                    tailored_skills = generator.generate_tailored_skills(
-                        profile.get('skills', ''), st.session_state.job_analysis
-                    )
-                    if tailored_skills != profile.get('skills', ''):
-                        st.write("**Skills (Reordered for Relevance):**")
-                        st.write(tailored_skills)
-                    
-                    # Show prioritized experiences
-                    experiences = profile.get('experiences', [])
-                    if experiences:
-                        prioritized_exp = generator.prioritize_experiences(
-                            experiences, st.session_state.job_analysis
-                        )
-                        st.write("**Experience (Prioritized by Relevance):**")
-                        for i, exp in enumerate(prioritized_exp[:3]):  # Show top 3
-                            st.write(f"{i+1}. {exp.get('title', 'N/A')} - {exp.get('company', 'N/A')}")
-                
-                except Exception as e:
-                    st.error(f"Error generating resume: {str(e)}")
 
 # Export Resume Page
-elif selected == "Export Resume":
+elif st.session_state.selected_page == "Export Resume":
     st.title("📥 Resume Builder & Export")
     st.markdown("Create, tailor, and download your professional resume.")
     
@@ -668,8 +439,12 @@ elif selected == "Export Resume":
     
     if not profile:
         st.warning("⚠️ Please set up your profile first.")
-        if st.button("Go to Profile Manager"):
-            st.switch_page("Profile Manager")
+        if st.button("Go to Profile Manager", key="goto_profile_manager"):
+            st.session_state.selected_page = "Profile Manager"
+            # Clear the option menu state to force it to update
+            if "main_menu" in st.session_state:
+                del st.session_state.main_menu
+            st.rerun()
     else:
         # Main workflow tabs
         tab1, tab2, tab3 = st.tabs(["🎯 Tailor Resume", "👁️ Preview Resume", "📥 Download Resume"])
