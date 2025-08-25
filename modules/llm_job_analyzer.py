@@ -90,7 +90,7 @@ class LLMJobAnalyzer:
             response = self._call_llm(analysis_prompt, system_prompt)
             
             # Clean response and parse JSON
-            response = response.strip()
+            response = response.content.strip()
             if response.startswith("```json"):
                 response = response[7:-3]
             elif response.startswith("```"):
@@ -157,7 +157,7 @@ class LLMJobAnalyzer:
             response = self._call_llm(match_prompt, system_prompt)
             
             # Clean and parse response
-            response = response.strip()
+            response = response.content.strip()
             if response.startswith("```json"):
                 response = response[7:-3]
             elif response.startswith("```"):
