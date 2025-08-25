@@ -6,6 +6,8 @@ from datetime import datetime
 from modules.resume_generator import ResumeGenerator
 from modules.resume_preview import ResumePreview
 from modules.llm_job_analyzer import LLMJobAnalyzer
+from modules.database_manager import db_manager
+from modules.job_storage_service import job_storage
 
 # Page config
 st.set_page_config(
@@ -67,9 +69,74 @@ with st.sidebar:
         else:
             st.warning("⚠️ No API key - using fallback analysis")
     
+    # Database Configuration
+    with st.expander("🗄️ Database Settings"):
+        available_dbs = db_manager.get_available_databases()
+        current_db = db_manager.get_current_database_type()
+        
+        selected_db = st.selectbox(
+            "Database Type",
+            options=list(available_dbs.keys()),
+            format_func=lambda x: available_dbs[x],
+            index=list(available_dbs.keys()).index(current_db) if current_db in available_dbs else 0,
+            key="db_selector"
+        )
+        
+        # MongoDB configuration
+        if selected_db == "mongodb":
+            st.subheader("MongoDB Atlas Setup")
+            connection_string = st.text_input(
+                "Connection String",
+                value=db_manager.config["mongodb"]["connection_string"],
+                type="password",
+                help="mongodb+srv://username:password@cluster-url/database"
+            )
+            database_name = st.text_input(
+                "Database Name",
+                value=db_manager.config["mongodb"]["database_name"],
+                help="Name of the MongoDB database"
+            )
+            
+            if st.button("Update MongoDB Config"):
+                db_manager.update_mongodb_config(connection_string, database_name)
+                st.success("MongoDB configuration updated!")
+                st.rerun()
+        
+        # SQLite configuration
+        elif selected_db == "sqlite":
+            st.subheader("SQLite Setup")
+            db_path = st.text_input(
+                "Database File Path",
+                value=db_manager.config["sqlite"]["db_path"],
+                help="Path to SQLite database file"
+            )
+            
+            if st.button("Update SQLite Config"):
+                db_manager.update_sqlite_config(db_path)
+                st.success("SQLite configuration updated!")
+                st.rerun()
+        
+        # Switch database button
+        if st.button(f"Switch to {available_dbs[selected_db]}"):
+            with st.spinner("Switching database..."):
+                if db_manager.switch_database(selected_db):
+                    st.success(f"Successfully switched to {available_dbs[selected_db]}")
+                    db_manager.initialize_collections()
+                    st.rerun()
+                else:
+                    st.error(f"Failed to switch to {available_dbs[selected_db]}")
+        
+        # Database status
+        db_info = db_manager.get_database_info()
+        st.caption(f"Current: {available_dbs.get(db_info['type'], db_info['type'])}")
+        if db_info['connected']:
+            st.caption("🟢 Connected")
+        else:
+            st.caption("🔴 Not Connected")
+    
     st.divider()
     
-    menu_options = ["Dashboard", "Profile Manager", "Export Resume"]
+    menu_options = ["Dashboard", "Profile Manager", "Export Resume", "Job History"]
     
     # Get current index based on session state
     try:
@@ -81,7 +148,7 @@ with st.sidebar:
     selected = option_menu(
         "Resume Builder",
         menu_options,
-        icons=['house', 'person', 'download'],
+        icons=['house', 'person', 'download', 'clock-history'],
         menu_icon="cast",
         default_index=current_index,
         key="main_menu"
@@ -496,6 +563,25 @@ elif st.session_state.selected_page == "Export Resume":
                             
                             coverage_score = analyzer.calculate_match_score(all_skills, analysis)
                             
+                            # Save job analysis to database
+                            try:
+                                job_title = st.text_input("Job Title (optional)", key="job_title_input") if not st.session_state.get('job_title_saved') else None
+                                company = st.text_input("Company (optional)", key="company_input") if not st.session_state.get('job_title_saved') else None
+                                
+                                if not st.session_state.get('job_title_saved'):
+                                    if st.button("Save Analysis"):
+                                        analysis_id = job_storage.save_job_analysis(
+                                            job_description=job_description,
+                                            analysis=analysis,
+                                            job_title=job_title,
+                                            company=company
+                                        )
+                                        st.session_state.job_title_saved = True
+                                        st.success(f"✅ Job analysis saved to database!")
+                                        st.rerun()
+                            except Exception as e:
+                                st.warning(f"Could not save to database: {e}")
+                            
                             # Store tailored resume data
                             st.session_state.tailored_resume = {
                                 'job_analysis': analysis,
@@ -648,3 +734,113 @@ elif st.session_state.selected_page == "Export Resume":
             else:
                 st.warning("⚠️ No tailored resume available. Please analyze a job description in the 'Tailor Resume' tab first.")
                 st.info("💡 Once you analyze a job description, you'll be able to download your tailored resume here.")
+
+# Job History Page
+elif st.session_state.selected_page == "Job History":
+    st.title("📊 Job Analysis History")
+    
+    try:
+        # Database status check
+        db_info = db_manager.get_database_info()
+        if not db_info['connected']:
+            st.error("🔴 Database not connected. Please configure database in the sidebar.")
+            st.stop()
+        
+        # Statistics
+        stats = job_storage.get_analysis_stats()
+        if stats:
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Total Analyses", stats.get('total_analyses', 0))
+            with col2:
+                st.metric("Unique Companies", stats.get('unique_companies', 0))
+            with col3:
+                top_skills = stats.get('top_skills', [])
+                st.metric("Top Skill", top_skills[0][0] if top_skills else "None")
+            with col4:
+                exp_levels = stats.get('experience_levels', {})
+                most_common_level = max(exp_levels.items(), key=lambda x: x[1])[0] if exp_levels else "None"
+                st.metric("Common Level", most_common_level.title())
+        
+        st.divider()
+        
+        # Search and filters
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            search_term = st.text_input("🔍 Search job analyses", placeholder="Search by job title, company, or skills...")
+        with col2:
+            limit = st.selectbox("Show", [10, 20, 50], index=1)
+        
+        # Filter options
+        with st.expander("🎯 Advanced Filters"):
+            filter_col1, filter_col2 = st.columns(2)
+            with filter_col1:
+                companies = stats.get('companies', [])
+                selected_company = st.selectbox("Company", ["All"] + companies, index=0)
+            with filter_col2:
+                exp_levels = list(stats.get('experience_levels', {}).keys())
+                selected_exp_level = st.selectbox("Experience Level", ["All"] + exp_levels, index=0)
+        
+        # Get job analyses
+        if search_term:
+            analyses = job_storage.search_analyses(search_term, limit=limit)
+        else:
+            company_filter = None if selected_company == "All" else selected_company
+            exp_level_filter = None if selected_exp_level == "All" else selected_exp_level
+            analyses = job_storage.get_job_analyses(
+                limit=limit, 
+                company=company_filter, 
+                experience_level=exp_level_filter
+            )
+        
+        if analyses:
+            st.subheader(f"📋 Found {len(analyses)} job analyses")
+            
+            for i, analysis in enumerate(analyses):
+                with st.expander(f"#{i+1} {analysis.get('job_title', 'Unknown Position')} @ {analysis.get('company', 'Unknown Company')}", expanded=False):
+                    col1, col2 = st.columns([2, 1])
+                    
+                    with col1:
+                        st.write(f"**Job Title:** {analysis.get('job_title', 'N/A')}")
+                        st.write(f"**Company:** {analysis.get('company', 'N/A')}")
+                        st.write(f"**Experience Level:** {analysis.get('experience_level', 'N/A').title()}")
+                        st.write(f"**Skills Count:** {analysis.get('skills_count', 0)}")
+                        
+                        # Show top skills
+                        analysis_data = analysis.get('analysis', {})
+                        technical_skills = analysis_data.get('technical_skills', [])[:5]
+                        if technical_skills:
+                            st.write(f"**Top Skills:** {', '.join(technical_skills)}")
+                    
+                    with col2:
+                        created_at = analysis.get('created_at', '')
+                        if created_at:
+                            from datetime import datetime
+                            try:
+                                dt = datetime.fromisoformat(created_at)
+                                st.write(f"**Analyzed:** {dt.strftime('%Y-%m-%d %H:%M')}")
+                            except:
+                                st.write(f"**Analyzed:** {created_at}")
+                        
+                        # Action buttons
+                        if st.button(f"🗑️ Delete", key=f"delete_{analysis['_id']}"):
+                            if job_storage.delete_job_analysis(analysis['_id']):
+                                st.success("Analysis deleted!")
+                                st.rerun()
+                            else:
+                                st.error("Failed to delete analysis")
+                    
+                    # Job description preview
+                    job_desc = analysis.get('job_description', '')
+                    if job_desc:
+                        st.write("**Job Description:**")
+                        st.text_area("", value=job_desc[:500] + "..." if len(job_desc) > 500 else job_desc, height=100, disabled=True, key=f"desc_{analysis['_id']}")
+        else:
+            st.info("🔍 No job analyses found. Start by analyzing some job descriptions!")
+            if st.button("📝 Analyze Your First Job"):
+                st.session_state.selected_page = "Export Resume"
+                st.rerun()
+    
+    except Exception as e:
+        st.error(f"Error loading job history: {e}")
+        st.info("Make sure your database is properly configured in the sidebar.")

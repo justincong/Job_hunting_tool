@@ -41,9 +41,8 @@ class LLMJobAnalyzer:
             messages.append(HumanMessage(content=prompt))
 
             response = llm.invoke(messages)
-            print(f"{messages}")
 
-            return response
+            return response.content
         except Exception as e:
             st.error(f"Error calling Pychomsky API: {str(e)}")
             raise e
@@ -88,9 +87,9 @@ class LLMJobAnalyzer:
         
         try:
             response = self._call_llm(analysis_prompt, system_prompt)
-            
+            print("LLM Response:", response)  # Debugging line
             # Clean response and parse JSON
-            response = response.content.strip()
+            response = response.strip()
             if response.startswith("```json"):
                 response = response[7:-3]
             elif response.startswith("```"):
@@ -157,7 +156,7 @@ class LLMJobAnalyzer:
             response = self._call_llm(match_prompt, system_prompt)
             
             # Clean and parse response
-            response = response.content.strip()
+            response = response.strip()
             if response.startswith("```json"):
                 response = response[7:-3]
             elif response.startswith("```"):

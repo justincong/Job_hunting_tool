@@ -2,6 +2,10 @@
 profile_data.json
 profiles/
 
+# Database files
+resume_builder.db
+database_config.json
+
 # Python cache and bytecode
 __pycache__/
 *.py[cod]
