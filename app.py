@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from modules.resume_generator import ResumeGenerator
 from modules.resume_preview import ResumePreview
-from modules.job_analyzer import JobAnalyzer
+from modules.llm_job_analyzer import LLMJobAnalyzer
 
 # Page config
 st.set_page_config(
@@ -36,7 +36,7 @@ def get_resume_preview():
 
 @st.cache_resource
 def get_job_analyzer():
-    return JobAnalyzer()
+    return LLMJobAnalyzer()
 
 # Load profile data if exists
 PROFILE_FILE = 'profile_data.json'
@@ -53,6 +53,22 @@ def save_profile(data):
 
 # Main navigation
 with st.sidebar:
+    # DeepSeek API Key Configuration
+    with st.expander("🔑 LLM Configuration"):
+        api_key = st.text_input(
+            "DeepSeek API Key", 
+            type="password",
+            value=os.getenv("DEEPSEEK_API_KEY", ""),
+            help="Enter your DeepSeek API key for enhanced job analysis"
+        )
+        if api_key:
+            os.environ["DEEPSEEK_API_KEY"] = api_key
+            st.success("✅ API key configured")
+        else:
+            st.warning("⚠️ No API key - using fallback analysis")
+    
+    st.divider()
+    
     menu_options = ["Dashboard", "Profile Manager", "Export Resume"]
     
     # Get current index based on session state
@@ -465,6 +481,10 @@ elif st.session_state.selected_page == "Export Resume":
                     try:
                         with st.spinner("Analyzing job description and tailoring your resume..."):
                             analyzer = get_job_analyzer()
+                            if not analyzer:
+                                st.error("Something is wrong with the get_job_analyzer function.")
+                                st.stop()
+                            
                             analysis = analyzer.analyze_job_description(job_description)
                             
                             # Calculate skills coverage
