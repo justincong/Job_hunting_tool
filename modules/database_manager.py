@@ -110,7 +110,11 @@ class DatabaseManager:
         if not self.current_db:
             # Try to initialize with the configured database
             db_type = self.config["active_database"]
-            self.switch_database(db_type)
+            if not self.switch_database(db_type):
+                # If configured database fails, fallback to SQLite
+                if db_type != "sqlite":
+                    print(f"Failed to connect to {db_type}, falling back to SQLite")
+                    self.switch_database("sqlite")
         
         return self.current_db
     
@@ -204,3 +208,12 @@ class DatabaseManager:
 
 # Global database manager instance
 db_manager = DatabaseManager()
+
+# Auto-initialize SQLite connection on startup
+try:
+    if not db_manager.get_database():
+        print("Warning: Could not initialize any database connection")
+    else:
+        db_manager.initialize_collections()
+except Exception as e:
+    print(f"Error during database initialization: {e}")

@@ -234,8 +234,12 @@ class JobAnalyzer:
         # Weight by priority skills
         priority_weight = 0
         for priority_skill in job_analysis.get('priority_skills', []):
-            if priority_skill['skill'].lower() in profile_skills_lower:
-                priority_weight += 2 if priority_skill['in_requirements'] else 1
+            if isinstance(priority_skill, dict):
+                skill_name = priority_skill.get('skill', '')
+                if skill_name and skill_name.lower() in profile_skills_lower:
+                    # Check for in_requirements (regular analyzer) or importance (LLM analyzer)
+                    is_high_priority = priority_skill.get('in_requirements', False) or priority_skill.get('importance') == 'high'
+                    priority_weight += 2 if is_high_priority else 1
         
         # Base score from skill overlap
         base_score = len(matching_skills) / len(job_skills_lower)

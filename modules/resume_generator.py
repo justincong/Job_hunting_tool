@@ -185,8 +185,12 @@ class ResumeGenerator:
             # Boost score for priority skills
             priority_skills = job_analysis.get('priority_skills', [])
             for priority in priority_skills[:5]:  # Top 5 priority skills
-                if priority['skill'].lower() in exp_text:
-                    score += 3 if priority['in_requirements'] else 2
+                if isinstance(priority, dict):
+                    skill_name = priority.get('skill', '')
+                    if skill_name and skill_name.lower() in exp_text:
+                        # Check for in_requirements (regular analyzer) or importance (LLM analyzer)
+                        is_high_priority = priority.get('in_requirements', False) or priority.get('importance') == 'high'
+                        score += 3 if is_high_priority else 2
             
             scored_experiences.append((score, exp))
         
@@ -237,7 +241,15 @@ class ResumeGenerator:
         # Get job skills
         job_technical = job_analysis.get('skills', {}).get('technical', [])
         job_soft = job_analysis.get('skills', {}).get('soft', [])
-        priority_skills = [ps['skill'] for ps in job_analysis.get('priority_skills', [])]
+        # Handle different priority skill formats
+        priority_skills = []
+        for ps in job_analysis.get('priority_skills', []):
+            if isinstance(ps, dict):
+                skill_name = ps.get('skill', '')
+                if skill_name:
+                    priority_skills.append(skill_name)
+            else:
+                priority_skills.append(str(ps))
         
         # Prioritize skills that match the job
         matched_skills = []
